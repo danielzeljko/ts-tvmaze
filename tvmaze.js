@@ -12862,6 +12862,9 @@ var $ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery.js"
 var $showsList = $("#showsList");
 var $episodesArea = $("#episodesArea");
 var $searchForm = $("#searchForm");
+// const $episodesBtn = $(".Show-getEpisodes");
+var MISSING_IMG_URL = "https://store-images.s-microsoft.com/image/apps.65316.13510798887490672.6e1ebb25-96c8-4504-b714-1f7cbca3c5ad.f9514a23-1eb8-4916-a18e-99b1a9817d15?mode=scale&q=90&h=300&w=300";
+var BASE_URL = "http://api.tvmaze.com";
 /** Given a search term, search for tv shows that match that query.
  *
  *  Returns (promise) array of show objects: [show, show, ...].
@@ -12873,22 +12876,23 @@ function getShowsByTerm(term) {
         var response;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, axios_1.default.get("https://api.tvmaze.com/search/shows?q=".concat(term))];
+                case 0: return [4 /*yield*/, axios_1.default.get("".concat(BASE_URL, "/search/shows?q=").concat(term))];
                 case 1:
                     response = _a.sent();
-                    console.log("resp", response);
-                    return [2 /*return*/];
+                    console.log("resp", response.data);
+                    return [2 /*return*/, response.data];
             }
         });
     });
 }
 /** Given list of shows, create markup for each and to DOM */
+// recompile webpack
 function populateShows(shows) {
+    var _a;
     $showsList.empty();
     for (var _i = 0, shows_1 = shows; _i < shows_1.length; _i++) {
         var show = shows_1[_i];
-        console.log("show=", show);
-        var $show = $("<div data-show-id=\"".concat(show.id, "\" class=\"Show col-md-12 col-lg-6 mb-4\">\n         <div class=\"media\">\n           <img\n              src=\"\"\n              alt=\"Bletchly Circle San Francisco\"\n              class=\"w-25 me-3\">\n           <div class=\"media-body\">\n             <h5 class=\"text-primary\">").concat(show.name, "</h5>\n             <div><small>").concat(show.summary, "</small></div>\n             <button class=\"btn btn-outline-light btn-sm Show-getEpisodes\">\n               Episodes\n             </button>\n           </div>\n         </div>\n       </div>\n      "));
+        var $show = $("<div data-show-id=\"".concat(show.show.id, "\" class=\"Show col-md-12 col-lg-6 mb-4\">\n         <div class=\"media\">\n           <img\n              src=\"").concat(((_a = show.show.image) === null || _a === void 0 ? void 0 : _a.medium) || MISSING_IMG_URL, "\"\n              alt=\"").concat(show.show.name, "\"\n              class=\"w-25 me-3\">\n           <div class=\"media-body\">\n             <h5 class=\"text-primary\">").concat(show.show.name, "</h5>\n             <div><small>").concat(show.show.summary, "</small></div>\n             <button data-show-id=").concat(show.show.id, " class=\"btn btn-outline-light btn-sm Show-getEpisodes\">\n               Episodes\n             </button>\n           </div>\n         </div>\n       </div>\n      "));
         $showsList.append($show);
     }
 }
@@ -12926,12 +12930,51 @@ $searchForm.on("submit", function (evt) {
         });
     });
 });
+$showsList.on("click", "button", function (evt) {
+    return __awaiter(this, void 0, void 0, function () {
+        var episodes;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, getEpisodesOfShow(evt.target.dataset.showId)];
+                case 1:
+                    episodes = _a.sent();
+                    $episodesArea.show();
+                    populateEpisodes(episodes);
+                    return [2 /*return*/];
+            }
+        });
+    });
+});
 /** Given a show ID, get from API and return (promise) array of episodes:
  *      { id, name, season, number }
  */
-// async function getEpisodesOfShow(id) { }
-/** Write a clear docstring for this function... */
-// function populateEpisodes(episodes) { }
+//
+function getEpisodesOfShow(id) {
+    return __awaiter(this, void 0, void 0, function () {
+        var response;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, axios_1.default.get("".concat(BASE_URL, "/shows/").concat(id, "/episodes"))];
+                case 1:
+                    response = _a.sent();
+                    console.log("episodes resp", response.data);
+                    return [2 /*return*/, response.data];
+            }
+        });
+    });
+}
+/** Given an array of objects representing episode data, creates list elements for
+ * each episode and appends to episodesArea
+ */
+function populateEpisodes(episodes) {
+    $episodesArea.empty();
+    console.log("episodes", episodes);
+    for (var _i = 0, episodes_1 = episodes; _i < episodes_1.length; _i++) {
+        var episode = episodes_1[_i];
+        var $show = $("<li>".concat(episode.name, " (Season ").concat(episode.season, ", Episode ").concat(episode.number, ")</li>"));
+        $episodesArea.append($show);
+    }
+}
 
 
 /***/ })

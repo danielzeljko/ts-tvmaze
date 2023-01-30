@@ -1,10 +1,13 @@
 import axios from "axios";
 import * as $ from 'jquery';
-import { ShowInterface } from "./interfaces";
+import { ShowInterface, EpisodesInterface } from "./interfaces";
 
 const $showsList = $("#showsList");
 const $episodesArea = $("#episodesArea");
 const $searchForm = $("#searchForm");
+// const $episodesBtn = $(".Show-getEpisodes");
+const MISSING_IMG_URL = "https://store-images.s-microsoft.com/image/apps.65316.13510798887490672.6e1ebb25-96c8-4504-b714-1f7cbca3c5ad.f9514a23-1eb8-4916-a18e-99b1a9817d15?mode=scale&q=90&h=300&w=300"
+const BASE_URL = "http://api.tvmaze.com"
 
 /** Given a search term, search for tv shows that match that query.
  *
@@ -13,35 +16,30 @@ const $searchForm = $("#searchForm");
  *    (if no image URL given by API, put in a default image URL)
  */
 
-async function getShowsByTerm(term: string): Promise<[ShowInterface]> {
-  const response = await axios.get(`https://api.tvmaze.com/search/shows?q=${term}`);
-
-  console.log("resp", response)
-
-
-  // return response.data;
+async function getShowsByTerm(term: string): Promise<ShowInterface[]> {
+  const response = await axios.get(`${BASE_URL}/search/shows?q=${term}`);
+  console.log("resp", response.data)
+  return response.data;
 }
 
 
 /** Given list of shows, create markup for each and to DOM */
-
-function populateShows(shows:[ShowInterface]) {
+// recompile webpack
+function populateShows(shows: ShowInterface[]) {
   $showsList.empty();
 
   for (const show of shows) {
-    console.log("show=", show)
-
     const $show = $(
-      `<div data-show-id="${show.id}" class="Show col-md-12 col-lg-6 mb-4">
+      `<div data-show-id="${show.show.id}" class="Show col-md-12 col-lg-6 mb-4">
          <div class="media">
            <img
-              src=""
-              alt="Bletchly Circle San Francisco"
+              src="${show.show.image?.medium || MISSING_IMG_URL}"
+              alt="${show.show.name}"
               class="w-25 me-3">
            <div class="media-body">
-             <h5 class="text-primary">${show.name}</h5>
-             <div><small>${show.summary}</small></div>
-             <button class="btn btn-outline-light btn-sm Show-getEpisodes">
+             <h5 class="text-primary">${show.show.name}</h5>
+             <div><small>${show.show.summary}</small></div>
+             <button data-show-id=${show.show.id} class="btn btn-outline-light btn-sm Show-getEpisodes">
                Episodes
              </button>
            </div>
@@ -70,13 +68,35 @@ $searchForm.on("submit", async function (evt) {
   await searchForShowAndDisplay();
 });
 
-
+$showsList.on("click", "button", async function (evt) {
+  const episodes = await getEpisodesOfShow(evt.target.dataset.showId)
+  $episodesArea.show();
+  populateEpisodes(episodes);
+})
 /** Given a show ID, get from API and return (promise) array of episodes:
  *      { id, name, season, number }
  */
+//
+async function getEpisodesOfShow(id: number): Promise<EpisodesInterface[]>  {
+  const response = await axios.get(`${BASE_URL}/shows/${id}/episodes`);
 
-// async function getEpisodesOfShow(id) { }
+  console.log("episodes resp", response.data)
 
-/** Write a clear docstring for this function... */
+  return response.data;
+}
 
-// function populateEpisodes(episodes) { }
+/** Given an array of objects representing episode data, creates list elements for
+ * each episode and appends to episodesArea
+ */
+
+function populateEpisodes(episodes: EpisodesInterface[]) {
+  $episodesArea.empty();
+  console.log("episodes", episodes)
+
+  for (const episode of episodes) {
+    const $show = $(
+      `<li>${episode.name} (Season ${episode.season}, Episode ${episode.number})</li>`);
+
+    $episodesArea.append($show);
+  }
+}
